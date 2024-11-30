@@ -1,0 +1,6 @@
+# GUI Requirements
+customtkinter>=5.2.0
+tkcalendar>=1.6.1
+
+# Email Processing
+python-dateutil>=2.8.2  # For robust date parsing
