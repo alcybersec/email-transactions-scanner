@@ -1,6 +1,9 @@
 # Email Transaction Scanner
 
 A Python desktop application that fetches and displays banking transactions from email notifications using IMAP. Currently supports Mashreq Bank card transactions and NEO account notifications.
+
+**⚠️ Work in Progress:** This project is currently under development and may undergo significant changes.
+
 ## Features
 
 - 🔒 Secure IMAP email connection
