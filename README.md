@@ -74,4 +74,4 @@ python gui.py
 5. Open a Pull Request
 
 ## License
-This project is licensed under the GNU AGPLv3 License - see the LICENSE file for details.
+This project is licensed under the GNU AGPL-3.0 License - see the LICENSE file for details.
