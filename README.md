@@ -4,7 +4,7 @@ A Python desktop application that fetches and displays banking transactions from
 
 **⚠️ Work in Progress:** This project is currently under development and may undergo significant changes.
 
-## Autor's Notice
+## Author's Note
 
 Since I have opened a Mashreq bank debit card in the UAE I have been frustrated with their mobile app and online-banking website. It shows wrong transaction dates and updates them 3 days after the purchase. It is missing a lot of key features, works in just a few regions and is simply bad. I have decided to make it more convenient to manage my finances by making this app. The only way to get the transaction notifications is email or SMS (email is better imo). I use ProtonMail as my email provider of choice but use can you my app with any email you like as long as it supports IMAP.
 I am planning on continuing to improve and enhance the app, so look forward for future updates.
