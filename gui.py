@@ -31,7 +31,7 @@ ctk.set_appearance_mode("System")  # Modes: "System" (default), "Dark", "Light"
 ctk.set_default_color_theme("blue")  # Themes: "blue" (default), "green", "dark-blue"
 
 SETTINGS_PATH = os.path.join(os.path.dirname(__file__), 'settings.json')
-FONT_SIZE = 20  # Default font size for the application
+FONT_SIZE = 17  # Default font size for the application
 
 class TransactionViewer(ctk.CTk):
     def __init__(self):
@@ -41,7 +41,7 @@ class TransactionViewer(ctk.CTk):
         self.ensure_settings_file()
         
         self.title("Transaction Viewer")
-        self.geometry("1920x1080")
+        self.geometry("1080x720")
         
         # Main container with subtle gradient background
         main_container = ctk.CTkFrame(self, corner_radius=10)
