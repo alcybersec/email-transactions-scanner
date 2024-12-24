@@ -89,12 +89,12 @@ def extract_transaction_details(email_body):
     card_ending_regex = r'Card ending with (\d{4})'
     amount_regex = r'purchase of AED ([\d,]+\.\d{2})'
     # Updated vendor regex to be more specific
-    vendor_regex = r'at (.*?)\s+(?:Dubai|AE)\s+(?:AE)?\s+on'
+    vendor_regex = r'at\s+(.+?)\s+on'
     date_regex = r'on (\d{2}-[A-Z]{3}-\d{4} \d{2}:\d{2} [AP]M)'
     available_limit_regex = r'Available limit is AED\s+([\d,]+\.\d{2})'
 
     amount_match = re.search(amount_regex, email_body)
-    vendor_match = re.search(vendor_regex, email_body, re.IGNORECASE)
+    vendor_match = re.search(vendor_regex, email_body, re.IGNORECASE | re.DOTALL)
     date_match = re.search(date_regex, email_body)
     available_limit_match = re.search(available_limit_regex, email_body)
     card_ending_match = re.search(card_ending_regex, email_body)

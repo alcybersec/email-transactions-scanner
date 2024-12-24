@@ -25,6 +25,7 @@ import json
 import os
 from tkinter import ttk
 from tkcalendar import Calendar
+from functions_gui import ensure_settings_file, load_settings
 
 # Set the theme and color scheme
 ctk.set_appearance_mode("System")  # Modes: "System" (default), "Dark", "Light"
@@ -36,9 +37,7 @@ FONT_SIZE = 17  # Default font size for the application
 class TransactionViewer(ctk.CTk):
     def __init__(self):
         super().__init__()
-        
-        # Ensure settings file exists
-        self.ensure_settings_file()
+        ensure_settings_file()  # Replaces self.ensure_settings_file()
         
         self.title("Transaction Viewer")
         self.geometry("1080x720")
@@ -119,7 +118,7 @@ class TransactionViewer(ctk.CTk):
         }
         
         # Check if credentials are present
-        settings = self.load_settings()
+        settings = load_settings()  # Replaces self.load_settings()
         if not has_credentials(settings):
             self.show_settings_popup()
             self.show_message("Please enter your credentials.")
@@ -449,7 +448,7 @@ class TransactionViewer(ctk.CTk):
         main_frame = ctk.CTkFrame(popup, corner_radius=10)
         main_frame.pack(expand=True, fill='both', padx=20, pady=20)
         
-        settings = self.load_settings()
+        settings = load_settings()
         
         # Create fields for credentials
         fields = {
@@ -484,25 +483,6 @@ class TransactionViewer(ctk.CTk):
         x = self.winfo_x() + (self.winfo_width() // 2) - (popup.winfo_width() // 2)
         y = self.winfo_y() + (self.winfo_height() // 2) - (popup.winfo_height() // 2)
         popup.geometry(f"+{x}+{y}")
-
-    def ensure_settings_file(self):
-        if not os.path.exists(SETTINGS_PATH):
-            self.create_default_settings()
-
-    def create_default_settings(self):
-        default_settings = {
-            "username": "",
-            "password": "",
-            "imap_server": "",
-            "imap_port": ""
-        }
-        with open(SETTINGS_PATH, 'w') as file:
-            json.dump(default_settings, file, indent=4)
-
-    def load_settings(self):
-        self.ensure_settings_file()
-        with open(SETTINGS_PATH, 'r') as file:
-            return json.load(file)
 
 if __name__ == "__main__":
     app = TransactionViewer()
