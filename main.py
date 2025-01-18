@@ -51,8 +51,14 @@ def create_default_settings():
 def load_settings():
     if not os.path.exists(SETTINGS_PATH):
         create_default_settings()
-    with open(SETTINGS_PATH, 'r') as file:
-        return json.load(file)
+    try:
+        with open(SETTINGS_PATH, 'r') as file:
+            return json.load(file)
+    except json.JSONDecodeError:
+        # If file is empty or invalid JSON, create defaults
+        create_default_settings()
+        with open(SETTINGS_PATH, 'r') as file:
+            return json.load(file)
 
 def has_credentials(settings):
     return all(settings.get(key) for key in ["username", "password", "imap_server", "imap_port"])

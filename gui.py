@@ -34,102 +34,125 @@ ctk.set_default_color_theme("blue")  # Themes: "blue" (default), "green", "dark-
 SETTINGS_PATH = os.path.join(os.path.dirname(__file__), 'settings.json')
 FONT_SIZE = 17  # Default font size for the application
 
-class TransactionViewer(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        ensure_settings_file()  # Replaces self.ensure_settings_file()
-        
-        self.title("Transaction Viewer")
-        self.geometry("1080x720")
-        
-        # Main container with subtle gradient background
-        main_container = ctk.CTkFrame(self, corner_radius=10)
-        main_container.pack(expand=True, fill='both', padx=20, pady=20)
-        
-        # Header with title - bigger font
-        header = ctk.CTkLabel(
-            main_container,
-            text="Transaction Manager",
-            font=ctk.CTkFont(size=28, weight="bold")  # Increased from 24
-        )
-        header.pack(pady=(0, 20))
-        
-        # Create notebook for tabs with modern styling
+class TransactionViewer(ctk.CTkFrame):
+    def __init__(self, parent, card_data, neo_data):
+        super().__init__(parent)
+        self.parent = parent
+        self.title_label = ctk.CTkLabel(self, text="Transaction Manager",
+                                        font=ctk.CTkFont(size=28, weight="bold"))
+        self.title_label.pack(pady=(20, 10))
+
+        # Notebook for Card and NEO transactions
         self.notebook = ctk.CTkTabview(
-            main_container,
-            segmented_button_fg_color="#2B2B2B",  # Dark background for inactive tabs
-            segmented_button_selected_color="#1F538D",  # Highlighted color for active tab
-            segmented_button_selected_hover_color="#1A4574",  # Hover color for active tab
-            segmented_button_unselected_color="#2B2B2B",  # Color for inactive tabs
-            segmented_button_unselected_hover_color="#3B3B3B",  # Hover color for inactive tabs
-            text_color="white"  # Text color
+            self,
+            text_color="white"
         )
-        self.notebook.pack(expand=True, fill='both', padx=10, pady=10)
-        
-        # Create tabs with increased height for better visibility and font size
-        self.notebook._segmented_button.configure(height=40, font=ctk.CTkFont(size=FONT_SIZE))
+        self.notebook.pack(expand=True, fill='both', padx=20, pady=10)
         self.notebook.add("Card Transactions")
         self.notebook.add("NEO Transactions")
 
-        # Create styled tabs
-        self.card_frame = ctk.CTkFrame(
-            self.notebook.tab("Card Transactions"),
-            corner_radius=10,
-            fg_color="transparent"  # Make frame background transparent
-        )
-        self.neo_frame = ctk.CTkFrame(
-            self.notebook.tab("NEO Transactions"),
-            corner_radius=10,
-            fg_color="transparent"  # Make frame background transparent
-        )
+        self.card_frame = ctk.CTkFrame(self.notebook.tab("Card Transactions"), fg_color="transparent")
+        self.neo_frame = ctk.CTkFrame(self.notebook.tab("NEO Transactions"), fg_color="transparent")
         self.card_frame.pack(expand=True, fill='both', padx=15, pady=15)
         self.neo_frame.pack(expand=True, fill='both', padx=15, pady=15)
-        
-        # Create Treeviews
+
+        # Store data locally
+        self.card_data = card_data
+        self.neo_data = neo_data
+
+        # TreeViews
         self.setup_card_treeview()
         self.setup_neo_treeview()
-        
-        # Styled refresh button
-        button_frame = ctk.CTkFrame(main_container, corner_radius=10)
-        button_frame.pack(pady=15)
+
+        # Refresh button and settings button
+        button_frame = ctk.CTkFrame(self)
+        button_frame.pack(pady=10)
+
         self.refresh_btn = ctk.CTkButton(
-            button_frame,
-            text="↻ Refresh",
-            command=self.refresh_data,
-            font=ctk.CTkFont(size=FONT_SIZE)
+            button_frame, text="↻ Refresh", command=self.refresh_data
         )
         self.refresh_btn.pack(side='left', padx=5)
-        
-        # Settings button
-        settings_button = ctk.CTkButton(
-            button_frame,
-            text="⚙ Settings",
-            command=self.show_settings_popup,
-            font=ctk.CTkFont(size=FONT_SIZE)
+
+        self.back_btn = ctk.CTkButton(
+            button_frame, text="← Back", command=self.go_back
         )
-        settings_button.pack(side='left', padx=5)
-        
-        # Initialize filter variables
+        self.back_btn.pack(side='left', padx=5)
+
+        self.filter_btn = ctk.CTkButton(
+            button_frame, text="Filter", command=self.show_filter_popup
+        )
+        self.filter_btn.pack(side='left', padx=5)
+
         self.filter_vars = {
             'amount_from': tk.StringVar(),
             'amount_to': tk.StringVar(),
             'date_from': tk.StringVar(),
             'date_to': tk.StringVar()
         }
-        
-        # Check if credentials are present
-        settings = load_settings()  # Replaces self.load_settings()
-        if not has_credentials(settings):
-            self.show_settings_popup()
-            self.show_message("Please enter your credentials.")
-        else:
-            self.refresh_data()
-        
+
+        # Load initial data
+        self.refresh_data()
+
+    def setup_card_treeview(self):
+        style = ttk.Style()
+        style.configure('Treeview', rowheight=30)
+
+        self.card_tree = ttk.Treeview(self.card_frame, columns=('amount','vendor','card_ending','date'), show='headings')
+        for col in ('amount','vendor','card_ending','date'):
+            self.card_tree.heading(col, text=col.title())
+            self.card_tree.column(col, anchor=tk.CENTER)
+        self.card_tree.pack(side='left', expand=True, fill='both')
+
+        scrollbar = ttk.Scrollbar(self.card_frame, orient='vertical', command=self.card_tree.yview)
+        self.card_tree.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side='right', fill='y')
+
+    def setup_neo_treeview(self):
+        style = ttk.Style()
+        style.configure('Treeview', rowheight=30)
+
+        self.neo_tree = ttk.Treeview(self.neo_frame, columns=('amount','account','date'), show='headings')
+        for col in ('amount','account','date'):
+            self.neo_tree.heading(col, text=col.title())
+            self.neo_tree.column(col, anchor=tk.CENTER)
+        self.neo_tree.pack(side='left', expand=True, fill='both')
+
+        scrollbar = ttk.Scrollbar(self.neo_frame, orient='vertical', command=self.neo_tree.yview)
+        self.neo_tree.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side='right', fill='y')
+
+    def refresh_data(self):
+        # Clear both trees
+        self.card_tree.delete(*self.card_tree.get_children())
+        self.neo_tree.delete(*self.neo_tree.get_children())
+
+        # Reverse sort by date
+        for transaction in sorted(self.card_data,
+                                  key=lambda x: datetime.strptime(x.get('date','01-Jan-1970 12:00 AM'), '%d-%b-%Y %I:%M %p'),
+                                  reverse=True):
+            self.card_tree.insert('', 'end', values=(
+                transaction.get('amount', '0.00'),
+                transaction.get('vendor', 'No vendor'),
+                transaction.get('card_ending', 'Unknown'),
+                transaction.get('date', 'N/A')
+            ))
+
+        for transaction in sorted(self.neo_data,
+                                  key=lambda x: datetime.strptime(x.get('date','01-Jan-1970 12:00 AM'), '%d-%b-%Y %I:%M %p'),
+                                  reverse=True):
+            self.neo_tree.insert('', 'end', values=(
+                transaction.get('amount', '0.00'),
+                transaction.get('account', 'No account'),
+                transaction.get('date', 'N/A')
+            ))
+
+    def go_back(self):
+        self.parent.show_main_page()
+
     def show_message(self, message):
         popup = ctk.CTkToplevel(self)
         popup.title("Message")
         popup.geometry("300x150")
-        self.center_popup(popup)
         
         main_frame = ctk.CTkFrame(popup, corner_radius=10)
         main_frame.pack(expand=True, fill='both', padx=20, pady=20)
@@ -137,127 +160,6 @@ class TransactionViewer(ctk.CTk):
         ctk.CTkLabel(main_frame, text=message, font=ctk.CTkFont(size=FONT_SIZE)).pack(pady=20)
         
         ctk.CTkButton(main_frame, text="OK", command=popup.destroy, font=ctk.CTkFont(size=FONT_SIZE)).pack(pady=10)
-
-    def setup_card_treeview(self):
-        # Create and configure style for Treeview
-        style = ttk.Style()
-        style.configure('Treeview', rowheight=30)  # Increase row height
-        
-        # Search frame with modern layout
-        search_frame = ctk.CTkFrame(self.card_frame, corner_radius=10)
-        search_frame.pack(fill='x', pady=(0, 15))
-        search_frame.grid_columnconfigure(1, weight=1)
-        
-        # Modern search bar
-        search_label = ctk.CTkLabel(search_frame, text="🔍", font=ctk.CTkFont(size=FONT_SIZE))
-        search_label.grid(row=0, column=0, padx=(5, 2))
-        
-        self.search_var = tk.StringVar()
-        search_entry = ctk.CTkEntry(
-            search_frame,
-            textvariable=self.search_var,
-            height=30,  # Increase the height
-            font=ctk.CTkFont(size=FONT_SIZE)
-        )
-        search_entry.grid(row=0, column=1, sticky='ew', padx=5)
-        search_entry.bind('<KeyRelease>', lambda e: self.search_transactions())
-        
-        filter_button = ctk.CTkButton(
-            search_frame,
-            text="⚡ Filters",
-            command=self.show_filter_popup,
-            font=ctk.CTkFont(size=FONT_SIZE)
-        )
-        filter_button.grid(row=0, column=2, padx=5)
-        
-        # Styled Treeview
-        columns = ('amount', 'vendor', 'card_ending', 'date')
-        self.card_tree = ttk.Treeview(
-            self.card_frame,
-            columns=columns,
-            show='headings'
-        )
-        
-        # Column styling
-        for col in columns:
-            self.card_tree.heading(col, text=col.title())
-            self.card_tree.column(col, anchor=tk.CENTER)
-        
-        self.card_tree.column('amount', width=100)
-        self.card_tree.column('vendor', width=200)
-        self.card_tree.column('card_ending', width=100)
-        self.card_tree.column('date', width=150)
-        
-        # Modern scrollbar
-        scrollbar = ttk.Scrollbar(
-            self.card_frame,
-            orient='vertical',
-            command=self.card_tree.yview
-        )
-        self.card_tree.configure(yscrollcommand=scrollbar.set)
-        
-        self.card_tree.pack(side='left', fill='both', expand=True)
-        scrollbar.pack(side='right', fill='y')
-
-    def setup_neo_treeview(self):
-        # Create and configure style for Treeview
-        style = ttk.Style()
-        style.configure('Treeview', rowheight=30)  # Increase row height
-        
-        columns = ('amount', 'account', 'date')
-        self.neo_tree = ttk.Treeview(self.neo_frame, columns=columns, show='headings')
-        
-        # Column headers
-        for col in columns:
-            self.neo_tree.heading(col, text=col.title())
-            self.neo_tree.column(col, anchor=tk.CENTER)
-        
-        self.neo_tree.column('amount', width=100)
-        self.neo_tree.column('account', width=150)
-        self.neo_tree.column('date', width=150)
-        
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(self.neo_frame, orient='vertical', command=self.neo_tree.yview)
-        self.neo_tree.configure(yscrollcommand=scrollbar.set)
-        
-        # Pack elements
-        self.neo_tree.pack(side='left', fill='both', expand=True)
-        scrollbar.pack(side='right', fill='y')
-    
-    def refresh_data(self):
-        # Clear existing items
-        self.card_tree.delete(*self.card_tree.get_children())
-        self.neo_tree.delete(*self.neo_tree.get_children())
-        
-        # Fetch new data
-        card_transactions, neo_transactions = main()
-        
-        if not card_transactions and not neo_transactions:
-            print("No transaction details found or failed to connect to email server.")
-            return
-        
-        # Update card transactions with reversed sorting (newest first)
-        for transaction in sorted(card_transactions, 
-                                key=lambda x: datetime.strptime(x.get('date', '01-Jan-1970 12:00 AM'), 
-                                                              '%d-%b-%Y %I:%M %p'),
-                                reverse=True):
-            self.card_tree.insert('', 'end', values=(
-                transaction.get('amount', '0.00'),
-                transaction.get('vendor', 'No vendor'),
-                transaction.get('card_ending', 'Unknown'),
-                transaction.get('date', 'N/A')
-            ))
-        
-        # Update neo transactions with reversed sorting (newest first)
-        for transaction in sorted(neo_transactions,
-                                key=lambda x: datetime.strptime(x.get('date', '01-Jan-1970 12:00 AM'), 
-                                                              '%d-%b-%Y %I:%M %p'),
-                                reverse=True):
-            self.neo_tree.insert('', 'end', values=(
-                transaction.get('amount', '0.00'),
-                transaction.get('account', 'No account'),
-                transaction.get('date', 'N/A')
-            ))
 
     def search_transactions(self):
         search_term = self.search_var.get().lower()
@@ -278,11 +180,12 @@ class TransactionViewer(ctk.CTk):
         popup = ctk.CTkToplevel(self)
         popup.title("Filters")
         popup.geometry("400x400")
-        self.center_popup(popup)
 
         # Create frame with padding
         main_frame = ctk.CTkFrame(popup, corner_radius=10)
         main_frame.pack(expand=True, fill='both', padx=20, pady=20)
+
+        self.filter_entries = {}
 
         # Amount filter section
         amount_frame = ctk.CTkFrame(main_frame, corner_radius=10)
@@ -292,12 +195,14 @@ class TransactionViewer(ctk.CTk):
             frame = ctk.CTkFrame(amount_frame, corner_radius=10)
             frame.pack(fill='x', pady=5)
             ctk.CTkLabel(frame, text=label, font=ctk.CTkFont(size=FONT_SIZE)).pack(side='left', padx=(0, 10))
-            ctk.CTkEntry(
+            entry = ctk.CTkEntry(
                 frame,
                 textvariable=self.filter_vars[var],
                 height=30,
                 font=ctk.CTkFont(size=FONT_SIZE)
-            ).pack(side='left')
+            )
+            entry.pack(side='left')
+            self.filter_entries[var] = entry
         
         # Date filter section
         date_frame = ctk.CTkFrame(main_frame, corner_radius=10)
@@ -314,6 +219,7 @@ class TransactionViewer(ctk.CTk):
                 font=ctk.CTkFont(size=FONT_SIZE)
             )
             date_entry.pack(side='left')
+            self.filter_entries[var] = date_entry
             date_button = ctk.CTkButton(
                 frame,
                 text="📅",
@@ -330,8 +236,17 @@ class TransactionViewer(ctk.CTk):
             self.filter_vars['date_from'].set(self.filter_vars['date_from'].get())
             self.filter_vars['date_to'].set(self.filter_vars['date_to'].get())
             self.apply_filters()
+            for entry in self.filter_entries.values():
+                entry.configure(textvariable=None)
             popup.destroy()  # Close the filters window after applying
         
+        def reset():
+            for var in self.filter_vars.values():
+                var.set('')
+            for entry in self.filter_entries.values():
+                entry.configure(textvariable=None)
+            popup.destroy()
+
         ctk.CTkButton(
             button_frame,
             text="Apply",
@@ -342,7 +257,7 @@ class TransactionViewer(ctk.CTk):
         ctk.CTkButton(
             button_frame,
             text="Reset",
-            command=self.reset_filters,
+            command=reset,
             font=ctk.CTkFont(size=FONT_SIZE)
         ).pack(side='right', padx=5)
 
@@ -356,7 +271,6 @@ class TransactionViewer(ctk.CTk):
         top = ctk.CTkToplevel(self)
         top.title("Select Date")
         top.geometry("300x300")
-        self.center_popup(top)
         
         # Create frame for date picker
         frame = ctk.CTkFrame(top, corner_radius=10)
@@ -438,52 +352,3 @@ class TransactionViewer(ctk.CTk):
         
         # Refresh data to show all transactions
         self.refresh_data()
-
-    def show_settings_popup(self):
-        popup = ctk.CTkToplevel(self)
-        popup.title("Settings")
-        popup.geometry("400x300")
-        self.center_popup(popup)
-        
-        main_frame = ctk.CTkFrame(popup, corner_radius=10)
-        main_frame.pack(expand=True, fill='both', padx=20, pady=20)
-        
-        settings = load_settings()
-        
-        # Create fields for credentials
-        fields = {
-            "username": tk.StringVar(value=settings.get("username", "")),
-            "password": tk.StringVar(value=settings.get("password", "")),
-            "imap_server": tk.StringVar(value=settings.get("imap_server", "")),
-            "imap_port": tk.StringVar(value=settings.get("imap_port", ""))
-        }
-        
-        for idx, (label, var) in enumerate(fields.items()):
-            frame = ctk.CTkFrame(main_frame, corner_radius=10)
-            frame.pack(fill='x', pady=5)
-            ctk.CTkLabel(frame, text=label.capitalize(), font=ctk.CTkFont(size=FONT_SIZE)).pack(side='left', padx=(0, 10))
-            ctk.CTkEntry(frame, textvariable=var, height=30, font=ctk.CTkFont(size=FONT_SIZE)
-            ).pack(side='left', fill='x', expand=True)
-        
-        def save_settings():
-            new_settings = {key: var.get() for key, var in fields.items()}
-            with open(SETTINGS_PATH, 'w') as file:
-                json.dump(new_settings, file, indent=4)
-            popup.destroy()
-        
-        button_frame = ctk.CTkFrame(main_frame, corner_radius=10)
-        button_frame.pack(fill='x', pady=(10, 0))
-        
-        ctk.CTkButton(button_frame, text="Save", command=save_settings, font=ctk.CTkFont(size=FONT_SIZE)).pack(side='right', padx=5)
-        ctk.CTkButton(button_frame, text="Cancel", command=popup.destroy, font=ctk.CTkFont(size=FONT_SIZE)).pack(side='right', padx=5)
-
-    def center_popup(self, popup):
-        self.update_idletasks()
-        popup.update_idletasks()
-        x = self.winfo_x() + (self.winfo_width() // 2) - (popup.winfo_width() // 2)
-        y = self.winfo_y() + (self.winfo_height() // 2) - (popup.winfo_height() // 2)
-        popup.geometry(f"+{x}+{y}")
-
-if __name__ == "__main__":
-    app = TransactionViewer()
-    app.mainloop()
